@@ -250,7 +250,7 @@ Return only the pure JSON object—no additional comments or text.`;
 
   {historyChunks.length > 0 && (
     <>
-      <div className="bg-white p-4 sm:p-6 mb-16 rounded-xl shadow space-y-8 leading-relaxed text-justify prose prose-indigo">
+      <div className="bg-white p-4 sm:p-6 mb-16 rounded-xl space-y-8 leading-relaxed text-justify prose prose-indigo">
         {historyChunks.map((chunk, idx) => (
           <div key={idx} className="pb-6 last:pb-0">
             {chunk.prompt && (
