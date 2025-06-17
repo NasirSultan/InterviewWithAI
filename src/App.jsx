@@ -1,11 +1,21 @@
 import { Routes, Route, Link } from 'react-router-dom';
-import LinkedinPostGenerator from './LinkedinPostGenerator';
-import OpenAi from './OpenAi';
-import BackButton from './BackButton';
-import VoiceAI from './VoiceAI';
-import VoiceAiagent from './VoiceAiagent';
+import OpenAi from './components/OpenAI';
+import VoiceAiagent from './components/InterviewAI';
+import Urduagent from './components/Urduagent';
+import Documentation from './components/Documentation';
 
-import Urduagent from './Urduagent';
+function BackButton() {
+  return (
+    <div className="mt-4 text-center">
+      <Link to="/">
+        <button className="px-5 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
+          ⬅ Back to Home
+        </button>
+      </Link>
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <Routes>
@@ -19,37 +29,29 @@ export default function App() {
             <p className="text-base sm:text-lg text-gray-600 mb-8">
               Choose a tool below to get started
             </p>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-center gap-4 w-full max-w-md">
-              <Link to="/AiAgent" className="w-full sm:w-auto">
-                <button className="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow hover:bg-blue-700 transition">
-                  LinkedIn Post Generator AiAgent
-                </button>
-              </Link>
-              <Link to="/OpenAivoice" className="w-full sm:w-auto">
-                <button className="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow hover:bg-blue-700 transition">
-               OpenAivoice
-                </button>
-              </Link>
-              <Link to="/OpenAi" className="w-full sm:w-auto">
-                <button className="w-full sm:w-auto px-6 py-3 bg-green-600 text-white font-semibold rounded-lg shadow hover:bg-green-700 transition">
+            <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
+              <Link to="/openai" className="w-full sm:w-auto">
+                <button className="w-full px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700">
                   OpenAI Assistant
+                </button>
+              </Link>
+              <Link to="/voiceaiagent" className="w-full sm:w-auto">
+                <button className="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700">
+                  AI Agent
+                </button>
+              </Link>
+              <Link to="/Documentation" className="w-full sm:w-auto">
+                <button className="w-full px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700">
+                 Documentation
                 </button>
               </Link>
             </div>
           </div>
         }
       />
+
       <Route
-        path="/AiAgent"
-        element={
-          <>
-            <LinkedinPostGenerator />
-            <BackButton />
-          </>
-        }
-      />
-      <Route
-        path="/OpenAi"
+        path="/openai"
         element={
           <>
             <OpenAi />
@@ -57,29 +59,29 @@ export default function App() {
           </>
         }
       />
-       <Route
-        path="/OpenAivoice"
+      <Route
+        path="/voiceaiagent"
         element={
           <>
-            <VoiceAI />
+            <VoiceAiagent />
             <BackButton />
           </>
         }
       />
-        <Route
-        path="/VoiceAiagent"
-        element={
-          <>
-            <VoiceAiagent />
-            
-          </>
-        }
-      />
-       <Route
-        path="/Urduagent"
+      <Route
+        path="/urduagent"
         element={
           <>
             <Urduagent />
+            <BackButton />
+          </>
+        }
+      />
+      <Route
+        path="/documentation"
+        element={
+          <>
+            <Documentation />
             <BackButton />
           </>
         }

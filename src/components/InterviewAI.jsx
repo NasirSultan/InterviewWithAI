@@ -65,6 +65,20 @@ export default function ShortInterviewQA() {
       .flatMap((chunk) => (chunk.questions ? chunk.questions.map((q) => q.q) : []))
       .filter(Boolean);
 
+  const autoFormatAnswer = (text) => {
+    const isLikelyCode =
+      text.trim().startsWith("const") ||
+      text.trim().startsWith("function") ||
+      text.trim().startsWith("import") ||
+      text.includes("=>") ||
+      text.includes("{") && text.includes("}");
+
+    if (isLikelyCode && !text.includes("```")) {
+      return "```js\n" + text.trim() + "\n```";
+    }
+    return text;
+  };
+
   const handleSubmit = async () => {
     if (!topic.trim()) return;
     setLoading(true);
@@ -72,7 +86,7 @@ export default function ShortInterviewQA() {
     speechSynthesis.cancel();
 
     try {
-const prompt = `You are a skilled technical interviewer and teacher.
+      const prompt = `You are a skilled technical interviewer and teacher.
 
 Please generate a short JSON object based on the topic: "${topic}".
 
@@ -84,10 +98,7 @@ The JSON should include:
   {
     "q": "A clear and direct question.",
     "a": "A simple and clear answer. Use plain English. If explaining code, use a 10-line code block. If the answer has steps or tips, use bullet points with hyphens (-) and highlight headings like this: **Heading**"
-  }
-
-`;
-
+  }`;
 
       const json = await fetchFromGemini(prompt);
       if (!json.questions || !Array.isArray(json.questions)) throw new Error("Invalid response");
@@ -132,7 +143,7 @@ The JSON should include:
       let json;
       if (trimmedPrompt === "more") {
         const existingQuestions = getAllPreviousQuestions();
-        const prompt = `Generate 5 more unique interview questions on "${topic}". \nAvoid these questions:\n${existingQuestions.map((q) => `- ${q}`).join("\n")}\nReturn pure JSON: { "questions": [ { "q": "...", "a": "..." }, ... ] }`;
+        const prompt = `Generate 5 more unique interview questions on "${topic}". Avoid these questions:\n${existingQuestions.map((q) => `- ${q}`).join("\n")}\nReturn pure JSON: { "questions": [ { "q": "...", "a": "..." }, ... ] }`;
 
         json = await fetchFromGemini(prompt);
         if (!json.questions || !Array.isArray(json.questions)) throw new Error("Invalid questions");
@@ -245,20 +256,23 @@ The JSON should include:
                         <p className="font-semibold text-gray-800 mb-2">{qa.q}</p>
                         <ReactMarkdown
                           components={{
-                            code({ inline, children }) {
+                            code({ inline, className, children }) {
+                              const language = className?.replace("language-", "") || "";
                               return inline ? (
                                 <code className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono text-red-600">
                                   {children}
                                 </code>
                               ) : (
                                 <pre className="bg-gray-900 text-white p-4 rounded overflow-x-auto text-sm my-2">
-                                  <code className="font-mono whitespace-pre-wrap">{children}</code>
+                                  <code className={`language-${language} font-mono whitespace-pre-wrap`}>
+                                    {children}
+                                  </code>
                                 </pre>
                               );
                             },
                           }}
                         >
-                          {qa.a}
+                          {autoFormatAnswer(qa.a)}
                         </ReactMarkdown>
                       </li>
                     ))}
@@ -272,6 +286,7 @@ The JSON should include:
             ))}
           </div>
 
+          {/* Follow-up input */}
           <div className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-[66%] bg-white p-4 rounded-xl z-40 shadow-lg">
             <div className="flex flex-col md:flex-row md:items-center gap-4">
               <div className="flex flex-grow gap-5">
@@ -293,6 +308,7 @@ The JSON should include:
             </div>
           </div>
 
+          {/* Action buttons */}
           <div className="fixed bottom-4 right-4 flex flex-col gap-3 items-end z-50">
             <button
               onClick={resetAll}
