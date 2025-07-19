@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { FaMicrophone, FaMicrophoneAlt } from "react-icons/fa";
+import { ImSpinner8 } from "react-icons/im";
 
 const GEMINI_API_KEY = import.meta.env.VITE_GREETING;
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
@@ -57,6 +58,12 @@ export default function VoiceOverlayChat() {
     }
   };
 
+  const speakText = (text) => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "en-US";
+    speechSynthesis.speak(utterance);
+  };
+
   const handleQueryGemini = async (text) => {
     try {
       setStatus("processing");
@@ -65,6 +72,7 @@ export default function VoiceOverlayChat() {
       const response = await result.response;
       const geminiReply = (await response.text()).trim();
       setOutput(geminiReply);
+      speakText(geminiReply); // 👈 speak response
       setStatus("result");
     } catch (err) {
       console.error("Gemini error:", err);
@@ -80,7 +88,6 @@ export default function VoiceOverlayChat() {
   };
 
   const handleOverlayClick = (e) => {
-    // Only close if clicking on the background (not child elements)
     if (e.target.id === "voice-overlay") {
       setOverlay(false);
       handleStopListening();
@@ -104,8 +111,8 @@ export default function VoiceOverlayChat() {
           onClick={handleOverlayClick}
           className="fixed inset-0 bg-black/90 text-white z-50 flex flex-col items-center justify-center p-6 space-y-6"
         >
-          {/* Mic or listening UI */}
-          {status !== "result" && (
+          {/* Status: Listening */}
+          {status === "listening" && (
             <>
               <p className="text-sm text-gray-300">Press & hold mic to talk</p>
               <button
@@ -113,47 +120,60 @@ export default function VoiceOverlayChat() {
                 onTouchStart={handleStartListening}
                 onMouseUp={handleStopListening}
                 onTouchEnd={handleStopListening}
-                className={`rounded-full w-32 h-32 text-4xl flex items-center justify-center border-4 transition relative ${
-                  status === "listening"
-                    ? "bg-red-600 border-red-400 text-white mic-pulse"
-                    : "bg-green-600 border-green-400 text-white"
-                }`}
+                className="rounded-full w-32 h-32 text-4xl flex items-center justify-center border-4 bg-red-600 border-red-400 text-white animate-pulse"
               >
-                {status === "listening" ? <FaMicrophoneAlt size={48} /> : <FaMicrophone size={40} />}
+                <FaMicrophoneAlt size={48} />
               </button>
-
-              {status === "listening" && (
-                <p className="mt-2 text-red-300 text-lg animate-pulse">
-                  Listening...
-                </p>
-              )}
+              <p className="mt-2 text-red-300 text-lg animate-pulse">Listening...</p>
             </>
           )}
 
-          {/* Result UI */}
+          {/* Status: Idle */}
+          {status === "idle" && (
+            <>
+              <p className="text-sm text-gray-300">Press & hold mic to talk</p>
+              <button
+                onMouseDown={handleStartListening}
+                onTouchStart={handleStartListening}
+                onMouseUp={handleStopListening}
+                onTouchEnd={handleStopListening}
+                className="rounded-full w-32 h-32 text-4xl flex items-center justify-center border-4 bg-green-600 border-green-400 text-white"
+              >
+                <FaMicrophone size={40} />
+              </button>
+            </>
+          )}
+
+          {/* Status: Processing */}
+          {status === "processing" && (
+            <div className="flex flex-col items-center space-y-4">
+              <ImSpinner8 className="animate-spin text-green-400" size={50} />
+              <p className="text-green-200 text-lg">Thinking...</p>
+            </div>
+          )}
+
+          {/* Status: Result */}
           {status === "result" && (
-          <div
-  onClick={(e) => e.stopPropagation()}
-  className="text-green-900 rounded-2xl p-6 max-w-xl w-full text-left  "
->
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="text-green-900 rounded-2xl p-6 max-w-xl w-full text-left"
+            >
+              <p className="whitespace-pre-line mb-6 text-white text-center leading-relaxed">
+                {output}
+              </p>
 
-  <p className="whitespace-pre-line mb-6 text-white text-center leading-relaxed">
-    {output}
-  </p>
-
-  <div className="flex justify-center  ">
-    <button
-      onClick={() => {
-        setStatus("idle");
-        setOutput("");
-      }}
-      className="bg-green-700 cursor-pointer hover:bg-green-800 text-white px-6 py-2 rounded-full shadow-md transition-all"
-    >
-      Ask Again
-    </button>
-  </div>
-</div>
-
+              <div className="flex justify-center">
+                <button
+                  onClick={() => {
+                    setStatus("idle");
+                    setOutput("");
+                  }}
+                  className="bg-green-700 cursor-pointer hover:bg-green-800 text-white px-6 py-2 rounded-full shadow-md transition-all"
+                >
+                  Ask Again
+                </button>
+              </div>
+            </div>
           )}
         </div>
       )}
