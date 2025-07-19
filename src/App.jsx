@@ -11,20 +11,20 @@ const recognition = SpeechRecognition ? new SpeechRecognition() : null;
 
 export default function VoiceOverlayChat() {
   const [overlay, setOverlay] = useState(false);
-  const [status, setStatus] = useState("idle"); // idle, listening, processing, result
+  const [status, setStatus] = useState("idle");
   const [output, setOutput] = useState("");
   const [transcript, setTranscript] = useState("");
-
   const isListeningRef = useRef(false);
 
   const handleStartListening = () => {
     if (!recognition) {
-      alert("Speech Recognition not supported.");
+      alert("Speech Recognition not supported in this browser.");
       return;
     }
 
-    setTranscript("");
     setStatus("listening");
+    setTranscript("");
+    setOutput("");
     isListeningRef.current = true;
 
     recognition.lang = "en-US";
@@ -33,45 +33,48 @@ export default function VoiceOverlayChat() {
     recognition.start();
 
     recognition.onresult = (event) => {
-      const result = event.results[0][0].transcript;
-      setTranscript(result);
+      const voiceText = event.results[0][0].transcript;
+      setTranscript(voiceText);
     };
 
     recognition.onerror = (e) => {
       console.error("Speech error:", e.error);
-      setTranscript("Please speak clearly or hold the mic longer.");
       setStatus("result");
+      setOutput("Please speak clearly or hold the mic longer.");
     };
   };
 
   const handleStopListening = () => {
     if (recognition && isListeningRef.current) {
-      recognition.stop();
       isListeningRef.current = false;
+      recognition.stop();
 
       if (transcript.trim()) {
-        handleSendToGemini(transcript);
+        handleSendToGemini();
       } else {
-        setTranscript("Please speak clearly or hold the mic longer.");
+        setOutput("Please speak clearly or hold the mic longer.");
         setStatus("result");
       }
     }
   };
 
-  const handleSendToGemini = async (text) => {
+  const handleSendToGemini = async () => {
+    if (!transcript) return;
+
     setStatus("processing");
     setOutput("");
 
     try {
       const model = genAI.getGenerativeModel({ model: "models/gemini-1.5-flash" });
-      const result = await model.generateContent(text);
+      const result = await model.generateContent(transcript);
       const response = await result.response;
-      const reply = (await response.text()).trim();
+      const geminiReply = (await response.text()).trim();
 
-      setOutput(reply);
+      setOutput(geminiReply);
       setStatus("result");
 
-      const utterance = new SpeechSynthesisUtterance(reply);
+      // Voice output
+      const utterance = new SpeechSynthesisUtterance(geminiReply);
       utterance.lang = "en-US";
       speechSynthesis.speak(utterance);
     } catch (err) {
@@ -84,8 +87,8 @@ export default function VoiceOverlayChat() {
   const handleOpen = () => {
     setOverlay(true);
     setStatus("idle");
-    setTranscript("");
     setOutput("");
+    setTranscript("");
   };
 
   const handleOverlayClick = (e) => {
@@ -93,12 +96,13 @@ export default function VoiceOverlayChat() {
       setOverlay(false);
       handleStopListening();
       setStatus("idle");
+      speechSynthesis.cancel(); // Stop speaking if open overlay closes
     }
   };
 
   return (
     <>
-      {/* Floating Button */}
+      {/* Floating mic button */}
       <button
         onClick={handleOpen}
         className="fixed bottom-20 right-4 bg-green-700 text-white p-4 rounded-full shadow-lg hover:bg-green-800 transition z-50"
@@ -112,43 +116,52 @@ export default function VoiceOverlayChat() {
           onClick={handleOverlayClick}
           className="fixed inset-0 bg-black/90 text-white z-50 flex flex-col items-center justify-center p-6 space-y-6"
         >
-          {/* Status: Listening */}
-          {status === "listening" && (
+          {/* Listening UI */}
+          {status !== "result" && (
             <>
-              <p className="text-sm text-gray-400">Listening... Speak now</p>
+              <p className="text-sm text-gray-300">Press & hold mic to talk</p>
               <button
                 onMouseDown={handleStartListening}
                 onTouchStart={handleStartListening}
                 onMouseUp={handleStopListening}
                 onTouchEnd={handleStopListening}
-                className="rounded-full w-32 h-32 text-4xl flex items-center justify-center border-4 bg-red-600 border-red-400 text-white mic-pulse"
+                className={`rounded-full w-32 h-32 text-4xl flex items-center justify-center border-4 transition relative ${
+                  status === "listening"
+                    ? "bg-red-600 border-red-400 text-white animate-pulse"
+                    : "bg-green-600 border-green-400 text-white"
+                }`}
               >
-                <FaMicrophoneAlt size={48} />
+                {status === "listening" ? (
+                  <FaMicrophoneAlt size={48} />
+                ) : (
+                  <FaMicrophone size={40} />
+                )}
               </button>
-              <p className="text-red-300 animate-pulse">Listening...</p>
+
+              {status === "listening" && (
+                <p className="mt-2 text-red-300 text-lg animate-pulse">Listening...</p>
+              )}
+
+              {status === "processing" && (
+                <p className="mt-4 text-gray-400 text-center animate-pulse">Analyzing...</p>
+              )}
             </>
           )}
 
-          {/* Status: Processing */}
-          {status === "processing" && (
-            <p className="text-center text-gray-400 animate-pulse text-lg">
-              Analyzing...
-            </p>
-          )}
-
-          {/* Status: Result */}
+          {/* Result UI */}
           {status === "result" && (
             <div
               onClick={(e) => e.stopPropagation()}
               className="text-green-900 rounded-2xl p-6 max-w-xl w-full text-left"
             >
               <p className="whitespace-pre-line mb-6 text-white text-center leading-relaxed">
-                {output || transcript}
+                {output}
               </p>
 
               <div className="flex justify-center">
                 <button
                   onClick={() => {
+                    speechSynthesis.cancel(); // ✅ Stop voice immediately
                     setStatus("idle");
                     setTranscript("");
                     setOutput("");
@@ -159,22 +172,6 @@ export default function VoiceOverlayChat() {
                 </button>
               </div>
             </div>
-          )}
-
-          {/* Status: Idle */}
-          {status === "idle" && (
-            <>
-              <p className="text-sm text-gray-400">Press & hold mic to talk</p>
-              <button
-                onMouseDown={handleStartListening}
-                onTouchStart={handleStartListening}
-                onMouseUp={handleStopListening}
-                onTouchEnd={handleStopListening}
-                className="rounded-full w-32 h-32 text-4xl flex items-center justify-center border-4 bg-green-600 border-green-400 text-white"
-              >
-                <FaMicrophone size={40} />
-              </button>
-            </>
           )}
         </div>
       )}
