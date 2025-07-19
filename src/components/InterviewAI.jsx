@@ -226,9 +226,10 @@ Return only the pure JSON object—no additional comments or text.`;
 >
   {!historyChunks.length && (
     <div className="flex flex-col items-center justify-center min-h-screen w-full px-4">
-      <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800 mb-8 text-center">
-        AI Interview Assistant
-      </h1>
+     <h1 className="text-xl sm:text-lg lg:text-4xl font-bold text-gray-800 mb-8 text-center">
+  AI Interview Assistant
+</h1>
+
       <div className="flex flex-col sm:flex-row gap-3 w-full max-w-4xl">
         <input
           value={topic}
@@ -257,7 +258,10 @@ Return only the pure JSON object—no additional comments or text.`;
               <p className="text-sm text-gray-500 italic mb-2">Prompt: {chunk.prompt}</p>
             )}
             {chunk.title && (
-              <h2 className="text-xl sm:text-2xl font-bold text-indigo-700 mb-4">{chunk.title}</h2>
+             <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-indigo-700 mb-4">
+  {chunk.title}
+</h2>
+
             )}
             {chunk.explanation && (
               <ReactMarkdown
