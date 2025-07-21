@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { FaMicrophone, FaMicrophoneAlt } from "react-icons/fa";
 
-// 🔐 Get your Gemini API key from env
 const GEMINI_API_KEY = import.meta.env.VITE_GREETING;
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
@@ -21,14 +20,14 @@ export default function VoiceGeminiChat() {
   const speakRef = useRef(null);
 
   useEffect(() => {
-    if (!'speechSynthesis' in window) {
-      setErrorMsg("Your browser does not support speech synthesis.");
+    if (!("speechSynthesis" in window)) {
+      setErrorMsg("Speech synthesis is not supported in your browser.");
     }
   }, []);
 
   const handleVoice = () => {
     if (!recognition) {
-      alert("Speech Recognition is not supported in this browser.");
+      alert("Speech recognition is not supported in this browser.");
       return;
     }
 
@@ -44,7 +43,7 @@ export default function VoiceGeminiChat() {
       setUserText(voiceInput);
       setListening(false);
       setProcessing(true);
-      await askGeminiInEnglish(voiceInput);
+      await askGemini(voiceInput);
     };
 
     recognition.onerror = (e) => {
@@ -54,10 +53,10 @@ export default function VoiceGeminiChat() {
     };
   };
 
-  const askGeminiInEnglish = async (text) => {
+  const askGemini = async (text) => {
     try {
-      const model = genAI.getGenerativeModel({ model: "models/gemini-1.5-flash" });
-      const result = await model.generateContent(`Translate and reply in English only: ${text}`);
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+      const result = await model.generateContent(`Translate and respond in English: ${text}`);
       const response = await result.response;
       const reply = (await response.text()).trim();
       setReplyText(reply);
@@ -72,7 +71,7 @@ export default function VoiceGeminiChat() {
 
   const speakReply = (text) => {
     if (!window.speechSynthesis) {
-      setErrorMsg("Voice response could not play. Your browser doesn't support speech synthesis.");
+      setErrorMsg("Speech synthesis is not supported.");
       return;
     }
 
@@ -82,58 +81,79 @@ export default function VoiceGeminiChat() {
       speakRef.current = utterance;
 
       utterance.onerror = () => {
-        setErrorMsg("Voice response could not play. Check your browser sound or permissions.");
+        setErrorMsg("Speech playback failed. Check sound or permissions.");
       };
 
       synthRef.current.speak(utterance);
     } catch (error) {
-      setErrorMsg("Speech synthesis failed: " + error.message);
+      setErrorMsg("Synthesis failed: " + error.message);
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white bg-opacity-95 p-4">
-      <div className="max-w-md w-full bg-white rounded-xl shadow-2xl border border-gray-300 p-6 text-center">
-        <h1 className="text-xl font-bold mb-2 text-gray-800">🎤 Voice Chat with Gemini</h1>
-        <p className="text-gray-600 text-sm mb-4">Tap the mic and speak. Gemini will reply in English.</p>
+ return (
+  <div className="fixed inset-0 flex items-center justify-center p-4">
+  <div className="w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl bg-white rounded-3xl shadow-2xl p-6 sm:p-8 animate-scaleIn transition-all duration-500 ease-out">
+    
+    {/* Title */}
+    <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-center text-gray-800 mb-4 font-sans tracking-tight animate-fade-in">
+      Voice Assistant
+    </h1>
 
-        {userText && (
-          <div className="mb-2 text-gray-700">
-            <strong>You:</strong> {userText}
-          </div>
-        )}
-        {replyText && (
-          <div className="mb-4 text-green-700">
-            <strong>Gemini:</strong> {replyText}
-          </div>
-        )}
+    {/* Subtitle */}
+    <p className="text-sm sm:text-base md:text-lg text-gray-600 text-center mb-6 leading-relaxed">
+      Tap the mic to speak. Gemini will respond in clear, fluent English with voice output.
+    </p>
 
-        {errorMsg && (
-          <div className="mb-4 text-red-600 text-sm">
-            ⚠️ {errorMsg}
-          </div>
-        )}
-
-        <div className="flex justify-center">
-          <button
-            onClick={handleVoice}
-            disabled={processing}
-            className={`rounded-full w-20 h-20 flex items-center justify-center shadow-xl transition-all ${
-              listening
-                ? "bg-red-600 animate-pulse"
-                : processing
-                ? "bg-gray-500 cursor-not-allowed"
-                : "bg-green-600 hover:bg-green-700"
-            }`}
-          >
-            {listening ? (
-              <FaMicrophoneAlt size={32} className="text-white" />
-            ) : (
-              <FaMicrophone size={28} className="text-white" />
-            )}
-          </button>
-        </div>
+    {/* Error Message */}
+    {errorMsg && (
+      <div className="text-sm sm:text-base text-red-600 text-center mb-3 animate-fadeIn">
+        {errorMsg}
       </div>
+    )}
+
+    {/* Mic Button + Waves */}
+    <div className="flex justify-center mt-4 relative">
+      {listening && (
+        <>
+          <div className="absolute w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-full border-4 border-blue-300 animate-ping z-0"></div>
+        </>
+      )}
+
+      <button
+        onClick={() => {
+          if (listening) {
+            recognition.stop();
+            setListening(false);
+          } else {
+            handleVoice();
+          }
+        }}
+        disabled={processing}
+        className={`w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-full flex items-center justify-center z-10 transition-all duration-300 shadow-xl ${
+          listening
+            ? "bg-red-600"
+            : processing
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-blue-600 hover:bg-blue-700"
+        }`}
+      >
+        {listening ? (
+          <FaMicrophoneAlt size={42} className="text-white animate-pulse" />
+        ) : (
+          <FaMicrophone size={42} className="text-white" />
+        )}
+      </button>
     </div>
-  );
+
+    {/* Mic State Text */}
+    <div className="text-center text-sm sm:text-base text-gray-500 mt-4">
+      {listening && "Listening... Tap again to stop."}
+      {processing && "Processing voice..."}
+      {!listening && !processing && "Tap the mic to begin speaking."}
+    </div>
+  </div>
+</div>
+
+);
+
 }
